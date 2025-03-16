@@ -146,6 +146,7 @@ func runWinGetUpdate() {
 	output, err := cmd.Output()
 	if err != nil {
 		logMessage(fmt.Sprintf("Error checking updates: %v", err))
+		sendNotification("WinGet Update", fmt.Sprintf("Error checking updates: %v", err), "error")
 		return
 	}
 
@@ -153,18 +154,22 @@ func runWinGetUpdate() {
 
 	if len(packages) == 0 {
 		logMessage("No updates available.")
+		sendNotification("WinGet Update", "No updates available.", "info")
 		return
 	}
 
 	for _, pkg := range packages {
 		logMessage(fmt.Sprintf("Updating %s (%s -> %s)...", pkg.Name, pkg.Version, pkg.AvailableVersion))
+		sendNotification("WinGet Update", fmt.Sprintf("Updating %s (%s -> %s)...", pkg.Name, pkg.Version, pkg.AvailableVersion), "info")
 		updateCmd := exec.Command("winget", "upgrade", "--silent", "--id", pkg.Id)
 		updateOutput, updateErr := updateCmd.CombinedOutput()
 
 		if updateErr != nil {
 			logMessage(fmt.Sprintf("Error updating %s: %v\nOutput: %s", pkg.Name, updateErr, string(updateOutput)))
+			sendNotification("WinGet Update", fmt.Sprintf("Error updating %s: %v\nOutput: %s", pkg.Name, updateErr, string(updateOutput)), "error")
 		} else {
 			logMessage(fmt.Sprintf("Successfully updated %s to version %s", pkg.Name, pkg.AvailableVersion))
+			sendNotification("WinGet Update", fmt.Sprintf("Successfully updated %s to version %s", pkg.Name, pkg.AvailableVersion), "success")
 		}
 	}
 }
