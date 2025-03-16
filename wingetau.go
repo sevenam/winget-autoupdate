@@ -226,11 +226,11 @@ func sendNotification(title, message, notificationType string) {
 	var iconPath string
 	switch notificationType {
 	case "error":
-		iconPath = "C:\\Path\\To\\ErrorIcon.png" // Replace with the path to your error icon
+		iconPath = ".\\error.png" // Replace with the path to your error icon
 	case "success":
-		iconPath = "C:\\Path\\To\\SuccessIcon.png" // Replace with the path to your success icon
+		iconPath = ".\\success.png" // Replace with the path to your success icon
 	case "info":
-		iconPath = "C:\\Path\\To\\InfoIcon.png" // Replace with the path to your info icon
+		iconPath = ".\\info.png" // Replace with the path to your info icon
 	default:
 		iconPath = ""
 	}
