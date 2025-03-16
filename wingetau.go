@@ -1,10 +1,12 @@
 package main
 
 import (
+	"embed"
 	"fmt"
 	"log"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"time"
 
@@ -12,6 +14,9 @@ import (
 	"golang.org/x/sys/windows/svc"
 	"golang.org/x/sys/windows/svc/mgr"
 )
+
+//go:embed assets/*
+var assets embed.FS
 
 const serviceName = "WinGetUpdater"
 const logFile = "C:\\ProgramData\\winget-service\\winget-service.log"
@@ -71,6 +76,8 @@ func installService() {
 	defer s.Close()
 
 	fmt.Println("Service installed successfully.")
+
+	startService()
 }
 
 func uninstallService() {
@@ -105,7 +112,7 @@ func startService() {
 
 	s, err := m.OpenService(serviceName)
 	if err != nil {
-		log.Fatal("Service not found.")
+		log.Fatal("Service not found:", err)
 	}
 	defer s.Close()
 
@@ -226,16 +233,38 @@ func sendNotification(title, message, notificationType string) {
 	var iconPath string
 	switch notificationType {
 	case "error":
-		iconPath = ".\\error.png" // Replace with the path to your error icon
+		iconPath = "assets/error.png" // Path to embedded error icon
 	case "success":
-		iconPath = ".\\success.png" // Replace with the path to your success icon
+		iconPath = "assets/success.png" // Path to embedded success icon
 	case "info":
-		iconPath = ".\\info.png" // Replace with the path to your info icon
+		iconPath = "assets/info.png" // Path to embedded info icon
 	default:
 		iconPath = ""
 	}
 
-	err := beeep.Notify(title, message, iconPath)
+	iconData, err := assets.ReadFile(iconPath)
+	if err != nil {
+		logMessage(fmt.Sprintf("Failed to read icon file: %v", err))
+		iconPath = ""
+	} else {
+		// Write the icon data to a temporary file
+		tmpFile, err := os.CreateTemp("", "icon-*.png")
+		if err != nil {
+			logMessage(fmt.Sprintf("Failed to create temp file for icon: %v", err))
+			iconPath = ""
+		} else {
+			defer os.Remove(tmpFile.Name())
+			_, err = tmpFile.Write(iconData)
+			if err != nil {
+				logMessage(fmt.Sprintf("Failed to write icon data to temp file: %v", err))
+				iconPath = ""
+			} else {
+				iconPath = tmpFile.Name()
+			}
+		}
+	}
+
+	err = beeep.Notify(title, message, iconPath)
 	if err != nil {
 		logMessage(fmt.Sprintf("Failed to send notification: %v", err))
 	}
@@ -243,8 +272,22 @@ func sendNotification(title, message, notificationType string) {
 
 func runAsService() {
 	fmt.Println("Running as a Windows Service...")
+
+	// Get the update interval from the environment variable
+	intervalStr := os.Getenv("WINGET_UPDATE_INTERVAL_SECONDS")
+	if intervalStr == "" {
+		intervalStr = "3600" // Default to 1 hour if not set
+	}
+
+	interval, err := strconv.Atoi(intervalStr)
+	if err != nil {
+		logMessage(fmt.Sprintf("Invalid update interval: %v", err))
+		interval = 3600 // Default to 1 hour if invalid
+		interval = 60
+	}
+
 	for {
 		runWinGetUpdate()
-		time.Sleep(24 * time.Hour)
+		time.Sleep(time.Duration(interval) * time.Second)
 	}
 }
