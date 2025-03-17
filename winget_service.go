@@ -20,6 +20,8 @@ func runWinGetUpdate() {
 		return
 	}
 
+	updateAgreements(wingetPath)
+
 	cmd := exec.Command(wingetPath, "list", "--upgrade-available", "--source=winget")
 	output, err := cmd.Output()
 	if err != nil {
@@ -39,7 +41,7 @@ func runWinGetUpdate() {
 	for _, pkg := range packages {
 		logMessage(fmt.Sprintf("Updating %s (%s -> %s)...", pkg.Name, pkg.Version, pkg.AvailableVersion))
 		sendNotification("WinGet Update", fmt.Sprintf("Updating %s (%s -> %s)...", pkg.Name, pkg.Version, pkg.AvailableVersion), "info")
-		updateCmd := exec.Command(wingetPath, "upgrade", "--silent", "--include-unknown", "--accept-package-agreements", "--id", pkg.Id)
+		updateCmd := exec.Command(wingetPath, "upgrade", "--silent", "--include-unknown", "--accept-package-agreements", "--accept-source-agreements", "--disable-interactivity", "--id", pkg.Id)
 		updateOutput, updateErr := updateCmd.CombinedOutput()
 
 		if updateErr != nil {
@@ -50,6 +52,19 @@ func runWinGetUpdate() {
 			sendNotification("WinGet Update", fmt.Sprintf("Successfully updated %s to version %s", pkg.Name, pkg.AvailableVersion), "success")
 		}
 	}
+}
+
+func updateAgreements(wingetPath string) {
+	// update msstore and agree to the package agreements
+	cmd := exec.Command(wingetPath, "source", "update", "--name", "msstore", "--disable-interactivity")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		logMessage(fmt.Sprintf("Error updating msstore source: %v", err))
+		logMessage(fmt.Sprintf("Output: %s", string(output)))
+		sendNotification("WinGet Update", fmt.Sprintf("Error updating msstore source: %v", err), "error")
+		return
+	}
+	logMessage(fmt.Sprintf("Output: %s", string(output)))
 }
 
 func findWingetPath() (string, error) {

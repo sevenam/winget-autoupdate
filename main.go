@@ -28,7 +28,7 @@ func main() {
 	}
 
 	if isWindowsService {
-		log.Print("Running as a Windows Service...")
+		logMessage("Running as a Windows Service...")
 		runAsService()
 		return
 	}
