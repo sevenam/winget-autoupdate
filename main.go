@@ -5,11 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/exec"
-	"path/filepath"
-	"strconv"
-	"strings"
-	"time"
 	"unsafe"
 
 	"github.com/gen2brain/beeep"
@@ -18,21 +13,26 @@ import (
 	"golang.org/x/sys/windows/svc/mgr"
 )
 
+// the comment below is required!
+//
 //go:embed assets/*
 var assets embed.FS
 
 const serviceName = "Winget-AutoUpdate"
 const logFile = "C:\\ProgramData\\winget-service\\winget-service.log"
 
-type WingetPackage struct {
-	Id               string `json:"PackageIdentifier"`
-	Name             string `json:"PackageName"`
-	Version          string `json:"Version"`
-	AvailableVersion string `json:"AvailableVersion"`
-	Source           string `json:"Source"`
-}
-
 func main() {
+	isWindowsService, err := svc.IsWindowsService()
+	if err != nil {
+		log.Fatalf("Failed to determine if we are running as Windows Service: %v", err)
+	}
+
+	if isWindowsService {
+		log.Default("Running as a Windows Service...")
+		runAsService()
+		return
+	}
+
 	if len(os.Args) < 2 {
 		fmt.Println("Usage: mycli <install|uninstall|start|stop|update|runservice>")
 		return
@@ -175,94 +175,6 @@ func stopService() {
 	fmt.Printf("Service stopping (status: %v)...\n", status.State)
 }
 
-func runWinGetUpdate() {
-	fmt.Println("Checking for package updates...")
-
-	wingetPath, err := findWingetPath()
-	if err != nil {
-		logMessage(fmt.Sprintf("Error finding winget path: %v", err))
-		sendNotification("WinGet Update", fmt.Sprintf("Error finding winget path: %v", err), "error")
-		return
-	}
-
-	cmd := exec.Command(wingetPath, "list", "--upgrade-available", "--source=winget")
-	output, err := cmd.Output()
-	if err != nil {
-		logMessage(fmt.Sprintf("Error checking updates: %v", err))
-		sendNotification("WinGet Update", fmt.Sprintf("Error checking updates: %v", err), "error")
-		return
-	}
-
-	packages := parseWingetOutput(string(output))
-
-	if len(packages) == 0 {
-		logMessage("No updates available.")
-		sendNotification("WinGet Update", "No updates available.", "info")
-		return
-	}
-
-	for _, pkg := range packages {
-		logMessage(fmt.Sprintf("Updating %s (%s -> %s)...", pkg.Name, pkg.Version, pkg.AvailableVersion))
-		sendNotification("WinGet Update", fmt.Sprintf("Updating %s (%s -> %s)...", pkg.Name, pkg.Version, pkg.AvailableVersion), "info")
-		updateCmd := exec.Command(wingetPath, "upgrade", "--silent", "--include-unknown", "--accept-package-agreements", "--id", pkg.Id)
-		updateOutput, updateErr := updateCmd.CombinedOutput()
-
-		if updateErr != nil {
-			logMessage(fmt.Sprintf("Error updating %s: %v\nOutput: %s", pkg.Name, updateErr, string(updateOutput)))
-			sendNotification("WinGet Update", fmt.Sprintf("Error updating %s: %v\nOutput: %s", pkg.Name, updateErr, string(updateOutput)), "error")
-		} else {
-			logMessage(fmt.Sprintf("Successfully updated %s to version %s", pkg.Name, pkg.AvailableVersion))
-			sendNotification("WinGet Update", fmt.Sprintf("Successfully updated %s to version %s", pkg.Name, pkg.AvailableVersion), "success")
-		}
-	}
-}
-
-func findWingetPath() (string, error) {
-	basePath := "C:\\Program Files\\WindowsApps"
-	err := filepath.Walk(basePath, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if !info.IsDir() && strings.HasSuffix(path, "winget.exe") {
-			return fmt.Errorf(path) // Use error to return the path
-		}
-		return nil
-	})
-	if err != nil {
-		if strings.HasSuffix(err.Error(), "winget.exe") {
-			return err.Error(), nil // Extract the path from the error
-		}
-		return "", err
-	}
-	return "", fmt.Errorf("winget.exe not found")
-}
-
-func parseWingetOutput(output string) []WingetPackage {
-	var packages []WingetPackage
-	lines := strings.Split(output, "\n")
-	for _, line := range lines {
-		trimmedLine := strings.TrimSpace(line)
-		if len(trimmedLine) == 0 || strings.Count(trimmedLine, "-") == len(trimmedLine) {
-			continue
-		}
-		if strings.Contains(line, "Name") && strings.Contains(line, "Id") && strings.Contains(line, "Version") && strings.Contains(line, "Available") {
-			continue
-		}
-		fields := strings.Fields(line)
-		if len(fields) < 4 {
-			continue
-		}
-		pkg := WingetPackage{
-			Name:             strings.Join(fields[:len(fields)-3], " "),
-			Id:               fields[len(fields)-3],
-			Version:          fields[len(fields)-2],
-			AvailableVersion: fields[len(fields)-1],
-		}
-		packages = append(packages, pkg)
-	}
-	return packages
-}
-
 func logMessage(message string) {
 	fmt.Println(message)
 
@@ -329,22 +241,8 @@ func sendNotification(title, message, notificationType string) {
 
 func runAsService() {
 	fmt.Println("Running as a Windows Service...")
-
-	// Get the update interval from the environment variable
-	intervalStr := os.Getenv("WINGET_UPDATE_INTERVAL_SECONDS")
-	if intervalStr == "" {
-		intervalStr = "3600" // Default to 1 hour if not set
-	}
-
-	interval, err := strconv.Atoi(intervalStr)
-	if err != nil {
-		logMessage(fmt.Sprintf("Invalid update interval: %v", err))
-		interval = 3600 // Default to 1 hour if invalid
-		interval = 60   // Default to 1 minute if invalid
-	}
-
-	for {
-		runWinGetUpdate()
-		time.Sleep(time.Duration(interval) * time.Second)
+	run := svc.Run
+	if err := run(serviceName, &wingetauWindowsService{}); err != nil {
+		log.Fatalf("Failed to run service: %v", err)
 	}
 }
