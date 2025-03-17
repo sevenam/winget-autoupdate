@@ -10,8 +10,10 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unsafe"
 
 	"github.com/gen2brain/beeep"
+	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/svc"
 	"golang.org/x/sys/windows/svc/mgr"
 )
@@ -75,6 +77,32 @@ func installService() {
 		log.Fatal("Failed to create service:", err)
 	}
 	defer s.Close()
+
+	// Set the "Allow service to interact with desktop" option
+	h, err := windows.OpenService(m.Handle, windows.StringToUTF16Ptr(serviceName), windows.SERVICE_CHANGE_CONFIG|windows.SERVICE_QUERY_CONFIG)
+	if err != nil {
+		log.Fatal("Failed to open service:", err)
+	}
+	defer windows.CloseServiceHandle(h)
+
+	var bytesNeeded uint32
+	err = windows.QueryServiceConfig(h, nil, 0, &bytesNeeded)
+	if err != windows.ERROR_INSUFFICIENT_BUFFER {
+		log.Fatal("Failed to query service config size:", err)
+	}
+
+	buffer := make([]byte, bytesNeeded)
+	serviceConfig := (*windows.QUERY_SERVICE_CONFIG)(unsafe.Pointer(&buffer[0]))
+	err = windows.QueryServiceConfig(h, serviceConfig, bytesNeeded, &bytesNeeded)
+	if err != nil {
+		log.Fatal("Failed to query service config:", err)
+	}
+
+	serviceType := serviceConfig.ServiceType | windows.SERVICE_INTERACTIVE_PROCESS
+	err = windows.ChangeServiceConfig(h, serviceType, windows.SERVICE_NO_CHANGE, windows.SERVICE_NO_CHANGE, nil, nil, nil, nil, nil, nil, nil)
+	if err != nil {
+		log.Fatal("Failed to change service config:", err)
+	}
 
 	fmt.Println("Service installed successfully.")
 
