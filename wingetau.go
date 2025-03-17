@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -18,7 +19,7 @@ import (
 //go:embed assets/*
 var assets embed.FS
 
-const serviceName = "WinGetUpdater"
+const serviceName = "Winget-AutoUpdate"
 const logFile = "C:\\ProgramData\\winget-service\\winget-service.log"
 
 type WingetPackage struct {
@@ -149,7 +150,14 @@ func stopService() {
 func runWinGetUpdate() {
 	fmt.Println("Checking for package updates...")
 
-	cmd := exec.Command("winget", "list", "--upgrade-available", "--source=winget")
+	wingetPath, err := findWingetPath()
+	if err != nil {
+		logMessage(fmt.Sprintf("Error finding winget path: %v", err))
+		sendNotification("WinGet Update", fmt.Sprintf("Error finding winget path: %v", err), "error")
+		return
+	}
+
+	cmd := exec.Command(wingetPath, "list", "--upgrade-available", "--source=winget")
 	output, err := cmd.Output()
 	if err != nil {
 		logMessage(fmt.Sprintf("Error checking updates: %v", err))
@@ -168,7 +176,7 @@ func runWinGetUpdate() {
 	for _, pkg := range packages {
 		logMessage(fmt.Sprintf("Updating %s (%s -> %s)...", pkg.Name, pkg.Version, pkg.AvailableVersion))
 		sendNotification("WinGet Update", fmt.Sprintf("Updating %s (%s -> %s)...", pkg.Name, pkg.Version, pkg.AvailableVersion), "info")
-		updateCmd := exec.Command("winget", "upgrade", "--silent", "--id", pkg.Id)
+		updateCmd := exec.Command(wingetPath, "upgrade", "--silent", "--accept-package-agreements", "--id", pkg.Id)
 		updateOutput, updateErr := updateCmd.CombinedOutput()
 
 		if updateErr != nil {
@@ -179,6 +187,26 @@ func runWinGetUpdate() {
 			sendNotification("WinGet Update", fmt.Sprintf("Successfully updated %s to version %s", pkg.Name, pkg.AvailableVersion), "success")
 		}
 	}
+}
+
+func findWingetPath() (string, error) {
+	basePath := "C:\\Program Files\\WindowsApps"
+	err := filepath.Walk(basePath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() && strings.HasSuffix(path, "winget.exe") {
+			return fmt.Errorf(path) // Use error to return the path
+		}
+		return nil
+	})
+	if err != nil {
+		if strings.HasSuffix(err.Error(), "winget.exe") {
+			return err.Error(), nil // Extract the path from the error
+		}
+		return "", err
+	}
+	return "", fmt.Errorf("winget.exe not found")
 }
 
 func parseWingetOutput(output string) []WingetPackage {
@@ -264,6 +292,7 @@ func sendNotification(title, message, notificationType string) {
 		}
 	}
 
+	// Use the beeep package to send a notification to the Windows notification bar
 	err = beeep.Notify(title, message, iconPath)
 	if err != nil {
 		logMessage(fmt.Sprintf("Failed to send notification: %v", err))
@@ -283,7 +312,7 @@ func runAsService() {
 	if err != nil {
 		logMessage(fmt.Sprintf("Invalid update interval: %v", err))
 		interval = 3600 // Default to 1 hour if invalid
-		interval = 60
+		interval = 60   // Default to 1 minute if invalid
 	}
 
 	for {
