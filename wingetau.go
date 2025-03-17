@@ -176,7 +176,7 @@ func runWinGetUpdate() {
 	for _, pkg := range packages {
 		logMessage(fmt.Sprintf("Updating %s (%s -> %s)...", pkg.Name, pkg.Version, pkg.AvailableVersion))
 		sendNotification("WinGet Update", fmt.Sprintf("Updating %s (%s -> %s)...", pkg.Name, pkg.Version, pkg.AvailableVersion), "info")
-		updateCmd := exec.Command(wingetPath, "upgrade", "--silent", "--accept-package-agreements", "--id", pkg.Id)
+		updateCmd := exec.Command(wingetPath, "upgrade", "--silent", "--include-unknown", "--accept-package-agreements", "--id", pkg.Id)
 		updateOutput, updateErr := updateCmd.CombinedOutput()
 
 		if updateErr != nil {
