@@ -117,6 +117,9 @@ func parseWingetOutput(output string) []WingetPackage {
 		if strings.Contains(line, "package(s) have version numbers that cannot be determined") {
 			continue
 		}
+		if strings.Contains(line, "The following packages have an upgrade available, but require explicit targeting for upgrade") {
+			continue
+		}
 		fields := strings.Fields(line)
 		if len(fields) < 4 {
 			continue
