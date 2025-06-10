@@ -114,6 +114,9 @@ func parseWingetOutput(output string) []WingetPackage {
 		if strings.Contains(line, "Name") && strings.Contains(line, "Id") && strings.Contains(line, "Version") && strings.Contains(line, "Available") {
 			continue
 		}
+		if strings.Contains(line, "package(s) have version numbers that cannot be determined") {
+			continue
+		}
 		fields := strings.Fields(line)
 		if len(fields) < 4 {
 			continue
