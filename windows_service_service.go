@@ -11,6 +11,8 @@ import (
 	"golang.org/x/sys/windows/svc/mgr"
 )
 
+const serviceName = ServiceName
+
 func installService() {
 	fmt.Println("Installing service...")
 

@@ -15,7 +15,6 @@ import (
 //go:embed assets/*
 var assets embed.FS
 
-const serviceName = ServiceName
 const logFile = LogFilePath
 
 func main() {
