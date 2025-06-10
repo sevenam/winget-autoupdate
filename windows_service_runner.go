@@ -9,9 +9,9 @@ import (
 	"golang.org/x/sys/windows/svc"
 )
 
-type wingetauWindowsService struct{}
+type windowsServiceRunner struct{}
 
-func (m *wingetauWindowsService) Execute(args []string, r <-chan svc.ChangeRequest, s chan<- svc.Status) (bool, uint32) {
+func (m *windowsServiceRunner) Execute(args []string, r <-chan svc.ChangeRequest, s chan<- svc.Status) (bool, uint32) {
 	const cmdsAccepted = svc.AcceptStop | svc.AcceptShutdown
 	s <- svc.Status{State: svc.StartPending}
 
@@ -19,7 +19,7 @@ func (m *wingetauWindowsService) Execute(args []string, r <-chan svc.ChangeReque
 	s <- svc.Status{State: svc.Running, Accepts: cmdsAccepted}
 
 	// Get the update interval from the environment variable
-	intervalStr := os.Getenv("WINGET_UPDATE_INTERVAL_SECONDS")
+	intervalStr := os.Getenv(AutoUpdateIntervalEnvVar)
 	if intervalStr == "" {
 		intervalStr = "60" // Default to 1 minute if not set
 	}
