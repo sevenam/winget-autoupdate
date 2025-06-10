@@ -28,7 +28,7 @@ func main() {
 	}
 
 	if len(os.Args) < 2 {
-		fmt.Printf("Usage: %s <install|uninstall|start|stop|update|runservice>\n", filepath.Base(os.Args[0]))
+		fmt.Printf("Usage: %s <install|uninstall|start|stop|update|list|runservice>\n", filepath.Base(os.Args[0]))
 		return
 	}
 
@@ -43,6 +43,8 @@ func main() {
 		stopService()
 	case "update":
 		runWinGetUpdate()
+	case "list":
+		listUpdates()
 	case "runservice":
 		runAsService()
 	default:

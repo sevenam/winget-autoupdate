@@ -52,6 +52,25 @@ func runWinGetUpdate() {
 	}
 }
 
+func listUpdates() {
+	wingetPath, err := findWingetPath()
+	if err != nil {
+		logMessage(fmt.Sprintf("Error finding winget path: %v", err))
+		sendNotification("WinGet Update", fmt.Sprintf("Error finding winget path: %v", err), "error")
+		return
+	}
+
+	cmd := exec.Command(wingetPath, "list", "--upgrade-available", "--source=winget")
+	var stderr strings.Builder
+	cmd.Stderr = &stderr
+	output, err := cmd.Output()
+	if err != nil {
+		fmt.Print(stderr.String())
+		return
+	}
+	fmt.Print(string(output)) // Print normal output if no error
+}
+
 func updateAgreements(wingetPath string) {
 	// update msstore and agree to the package agreements
 	cmd := exec.Command(wingetPath, "source", "update", "--name", "msstore", "--disable-interactivity")
@@ -66,8 +85,7 @@ func updateAgreements(wingetPath string) {
 }
 
 func findWingetPath() (string, error) {
-	basePath := "C:\\Program Files\\WindowsApps"
-	err := filepath.Walk(basePath, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(WingetExeBasePath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
