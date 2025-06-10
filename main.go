@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 
 	"golang.org/x/sys/windows/svc"
 )
@@ -27,7 +28,7 @@ func main() {
 	}
 
 	if len(os.Args) < 2 {
-		fmt.Println("Usage: mycli <install|uninstall|start|stop|update|runservice>")
+		fmt.Printf("Usage: %s <install|uninstall|start|stop|update|runservice>\n", filepath.Base(os.Args[0]))
 		return
 	}
 

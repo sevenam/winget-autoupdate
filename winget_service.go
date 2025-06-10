@@ -8,8 +8,6 @@ import (
 	"strings"
 )
 
-type wingetService struct{}
-
 func runWinGetUpdate() {
 	fmt.Println("Checking for package updates...")
 
