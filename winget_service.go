@@ -21,7 +21,9 @@ func runWinGetUpdate() {
 	updateAgreements(wingetPath)
 
 	cmd := exec.Command(wingetPath, "list", "--upgrade-available", "--source=winget")
+	// cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 	output, err := cmd.Output()
+	logMessage(string(output))
 	if err != nil {
 		logMessage(fmt.Sprintf("Error checking updates: %v", err))
 		sendNotification("WinGet Update", fmt.Sprintf("Error checking updates: %v", err), "error")
@@ -35,6 +37,14 @@ func runWinGetUpdate() {
 		sendNotification("WinGet Update", "No updates available.", "info")
 		return
 	}
+
+	logMessage(fmt.Sprintf("Found %d package(s) with updates available.", len(packages)))
+
+	for _, pkg := range packages {
+		logMessage((fmt.Sprintf("- %s (%s -> %s) [Id: %s]", pkg.Name, pkg.Version, pkg.AvailableVersion, pkg.Id)))
+	}
+
+	logMessage("Updating packages...")
 
 	for _, pkg := range packages {
 		logMessage(fmt.Sprintf("Updating %s (%s -> %s)...", pkg.Name, pkg.Version, pkg.AvailableVersion))
