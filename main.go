@@ -28,22 +28,7 @@ func main() {
 	}
 
 	if len(os.Args) < 2 {
-		fmt.Printf(
-			`wingetau (Winget Auto Update) - A CLI with Windows Service capabilities for automatic updates of installed packages using WinGet.
-
-Usage: %s <install|uninstall|start|stop|update|list|runservice>
-
-Commands:
-install    - Install the Windows service
-uninstall  - Uninstall the Windows service
-start      - Start the Windows service
-stop       - Stop the Windows service
-update     - Check for and apply updates to installed packages
-list       - List available updates for installed packages
-runservice - Run the application as a Windows Service
-
-`,
-			filepath.Base(os.Args[0]))
+		printHelp()
 		return
 	}
 
@@ -62,7 +47,29 @@ runservice - Run the application as a Windows Service
 		listUpdates()
 	case "runservice":
 		runAsService()
+	case "help":
+		printHelp()
 	default:
 		fmt.Println("Unknown command:", os.Args[1])
 	}
+}
+
+func printHelp() {
+	fmt.Printf(
+		`wingetau.exe (Winget Auto Update) - A CLI with Windows Service capabilities for automatic updates of installed packages using WinGet.
+
+Usage:
+  %s <install|uninstall|start|stop|update|list|runservice>
+
+Available commands:
+  install      Install the service
+  uninstall    Uninstall the service
+  start        Start the service
+  stop         Stop the service
+  update       Run updates now
+  list         List packages that would be updated
+  runservice   Run as a Windows service
+  help         Show this help message
+
+`, filepath.Base(os.Args[0]))
 }
