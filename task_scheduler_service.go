@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 )
 
@@ -10,15 +11,23 @@ func installScheduledTask() {
 	exePath := "D:\\git\\sevenam\\winget-autoupdate\\wingetau.exe"
 	args := "update"
 
+	// Get the current username
+	username := os.Getenv("USERNAME")
+	if username == "" {
+		fmt.Println("Could not determine current username.")
+		return
+	}
+
 	cmd := exec.Command("schtasks",
 		"/Create",
 		"/F",
 		"/SC", "MINUTE",
 		"/MO", "1",
 		"/TN", taskName,
-		"/TR", fmt.Sprintf("\"%s %s\"", exePath, args),
+		"/TR", fmt.Sprintf("\"%s\" %s", exePath, args),
 		"/RL", "HIGHEST",
-		"/RU", "SYSTEM",
+		"/RU", username,
+		"/NP", // Do not store password
 	)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
