@@ -28,7 +28,22 @@ func main() {
 	}
 
 	if len(os.Args) < 2 {
-		fmt.Printf("Usage: %s <install|uninstall|start|stop|update|list|runservice>\n", filepath.Base(os.Args[0]))
+		fmt.Printf(
+			`wingetau (Winget Auto Update) - A CLI with Windows Service capabilities for automatic updates of installed packages using WinGet.
+
+Usage: %s <install|uninstall|start|stop|update|list|runservice>
+
+Commands:
+install    - Install the Windows service
+uninstall  - Uninstall the Windows service
+start      - Start the Windows service
+stop       - Stop the Windows service
+update     - Check for and apply updates to installed packages
+list       - List available updates for installed packages
+runservice - Run the application as a Windows Service
+
+`,
+			filepath.Base(os.Args[0]))
 		return
 	}
 
