@@ -33,6 +33,10 @@ func main() {
 	}
 
 	switch os.Args[1] {
+	case "installtask":
+		installScheduledTask()
+	case "uninstalltask":
+		uninstallScheduledTask()
 	case "install":
 		installService()
 	case "uninstall":
@@ -62,14 +66,16 @@ Usage:
   %s <install|uninstall|start|stop|update|list|runservice>
 
 Available commands:
-  install      Install the service
-  uninstall    Uninstall the service
-  start        Start the service
-  stop         Stop the service
-  update       Run updates now
-  list         List packages that would be updated
-  runservice   Run as a Windows service
-  help         Show this help message
+  installtask     Install the scheduled task for auto updates
+  uninstalltask   Uninstall the scheduled task for auto updates
+  install         Install the service
+  uninstall       Uninstall the service
+  start           Start the service
+  stop            Stop the service
+  update          Run updates now
+  list            List packages that would be updated
+  runservice      Run the Windows service (this is called by the service manager and is not indended to be run manually)
+  help            Show this help message
 
 `, filepath.Base(os.Args[0]))
 }
