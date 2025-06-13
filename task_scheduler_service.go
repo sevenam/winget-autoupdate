@@ -22,7 +22,7 @@ func installScheduledTask() {
 		"/Create",
 		"/F",
 		"/SC", "MINUTE",
-		"/MO", "1",
+		"/MO", "60",
 		"/TN", taskName,
 		"/TR", fmt.Sprintf("\"%s\" %s", exePath, args),
 		"/RL", "HIGHEST",

@@ -19,7 +19,9 @@ Another bug - the service running as local system will not see all apps. the ser
 
 for the above problem, maybe task scheduler is the way to go now? task scheduler seems to work, but gives annoying terminal popup unless build like this: go build -ldflags="-H windowsgui" -o wingetau.exe
 
-other options could be: setting the cli to run on startup "with runasservice" argument and then handle it's own timer/schedule using cron or something. Try this:
+other options could be: setting the cli to run on startup "with runasservice" argument and then handle it's own timer/schedule using cron or something. Actually - this won't work very well as a startup app like this wont easily be able to run with admin privileges. Anyway - example here:
+
+package main
 
 import (
     "os"
